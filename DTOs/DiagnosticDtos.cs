@@ -1,7 +1,5 @@
 ﻿namespace astractech_backend.DTOs
 {
-    // ... kode yang sudah ada tetap dipertahankan ...
-
     public class FailureHistoryResponse
     {
         public string FailureCode { get; set; } = string.Empty;
@@ -20,6 +18,7 @@
     {
         public string FailureCode { get; set; } = string.Empty;
         public string UserNim { get; set; } = string.Empty;
+        public string UserNama { get; set; } = string.Empty; // Tambahkan ini untuk nama mahasiswa
         public string? DiagnosisTitle { get; set; }
         public int TotalSteps { get; set; }
         public string? SolutionText { get; set; }

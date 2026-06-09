@@ -34,6 +34,9 @@ namespace astratech_apps_backend.Controllers
 
             try
             {
+                // Membuat Base URL untuk akses gambar di folder wwwroot
+                string baseUrl = $"{Request.Scheme}://{Request.Host}{Request.PathBase}/images/troubleshooting/";
+
                 using (SqlConnection conn = new SqlConnection(_connectionString))
                 {
                     conn.Open();
@@ -70,7 +73,6 @@ namespace astratech_apps_backend.Controllers
                     }
 
                     // --- TAHAP 2: AMBIL DATA PENYEBAB (POSSIBLE CAUSES) ---
-                    // Kita harus buat List baru untuk menampung hasil TAHAP 2
                     List<object> causesList = new List<object>();
                     SqlCommand cmd2 = new SqlCommand("sp_GetPossibleCauseByCode", conn);
                     cmd2.CommandType = CommandType.StoredProcedure;
@@ -85,10 +87,17 @@ namespace astratech_apps_backend.Controllers
                                 check_method = reader2["check_method"]?.ToString() ?? "",
                                 standard_condition = reader2["standard_condition"]?.ToString() ?? "",
                                 
-                                // PERBAIKAN: Cek dulu kolom standard_unit ada atau enggak biar gak crash
+                                // Cek dulu kolom standard_unit ada atau enggak biar gak crash
                                 standard_unit = HasColumn(reader2, "standard_unit") ? (reader2["standard_unit"]?.ToString() ?? "") : "",
                                 
-                                special_method = reader2["special_method"]?.ToString()?.Trim().ToLower() ?? "tidak"
+                                special_method = reader2["special_method"]?.ToString()?.Trim().ToLower() ?? "tidak",
+
+                                // TAMBAHAN: Ambil data gambar dari SP dan buat URL lengkapnya
+                                image_url = (HasColumn(reader2, "image_filename") && reader2["image_filename"] != DBNull.Value) ? 
+                                            baseUrl + reader2["image_filename"].ToString() : null,
+
+                                standard_image_url = (HasColumn(reader2, "standard_image_filename") && reader2["standard_image_filename"] != DBNull.Value) ? 
+                                                     baseUrl + reader2["standard_image_filename"].ToString() : null
                             });
                         }
                     }
@@ -107,7 +116,7 @@ namespace astratech_apps_backend.Controllers
                         category = response.category,
                         contents_of_trouble = response.contents_of_trouble,
                         related_information = response.related_information,
-                        causes = causesList // SEKARANG SUDAH ADA ISI NYA
+                        causes = causesList 
                     });
                 }
             }

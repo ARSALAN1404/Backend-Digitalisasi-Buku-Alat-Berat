@@ -67,4 +67,18 @@ namespace astractech_backend.Models
         public bool IsCauseFound { get; set; }
         public string? Notes { get; set; }
     }
+
+    // --- TAMBAHAN UNTUK RIWAYAT MAHASISWA & DOSEN ---
+    public class FailureHistory
+    {
+        public int Id { get; set; } // Ini akan menjadi SessionId di Frontend
+        public string FailureCode { get; set; } = string.Empty;
+        public string UserNim { get; set; } = string.Empty;
+        public string UserNama { get; set; } = string.Empty;
+        public string? DiagnosisTitle { get; set; }
+        public int TotalSteps { get; set; }
+        public string? SolutionText { get; set; }
+        public string? Notes { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
 }

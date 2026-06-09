@@ -85,6 +85,8 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+// --- PENTING: PENGATURAN MIDDLEWARE ---
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -92,9 +94,15 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// 1. TAMBAHKAN INI AGAR GAMBAR BISA DIAKSES VIA URL
+app.UseStaticFiles(); 
+
 app.UseCors("AllowAll");
+
 app.UseAuthentication();
 app.UseAuthorization();
+
 app.MapControllers();
 
 app.Run();
