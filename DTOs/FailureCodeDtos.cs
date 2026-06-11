@@ -3,11 +3,37 @@ using System.Collections.Generic;
 
 namespace astratech_apps_backend.DTOs
 {
-    // 1. Tambahkan Role di Request Login
+    // ════════════════════════════════════════════════════════════════
+    // AUTH
+    // ════════════════════════════════════════════════════════════════
+
+    public class RegisterRequest
+    {
+        public string Nim { get; set; } = string.Empty;
+        public string Nama { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+        public string Role { get; set; } = string.Empty;  // "student" | "lecturer"
+
+        // 3 Security Questions
+        public int Q1Id { get; set; }
+        public string A1 { get; set; } = string.Empty;
+        public int Q2Id { get; set; }
+        public string A2 { get; set; } = string.Empty;
+        public int Q3Id { get; set; }
+        public string A3 { get; set; } = string.Empty;
+    }
+
+    public class LoginRequest
+    {
+        public string Nim { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+    }
+
+    // Dipertahankan agar tidak ada yang break
     public class FailureLoginRequest
     {
         public string Nim { get; set; } = string.Empty;
-        public string Role { get; set; } = string.Empty; // Ditambahkan agar sinkron dengan Controller
+        public string Role { get; set; } = string.Empty;
     }
 
     public class FailureLoginResponse
@@ -16,29 +42,59 @@ namespace astratech_apps_backend.DTOs
         public FailureUserDto User { get; set; } = new FailureUserDto();
     }
 
-    // 2. Sesuaikan UserDto: Ganti Kelas menjadi Role
     public class FailureUserDto
     {
         public string Nim { get; set; } = string.Empty;
         public string Nama { get; set; } = string.Empty;
-        public string Role { get; set; } = string.Empty; // Sebelumnya 'Kelas'
+        public string Role { get; set; } = string.Empty;
     }
 
-    // 3. Pastikan property ini sesuai dengan kolom di tabel dbo.failure_code kamu
+    // ════════════════════════════════════════════════════════════════
+    // SECURITY QUESTIONS
+    // ════════════════════════════════════════════════════════════════
+
+    public class SecurityQuestionDto
+    {
+        public int Id { get; set; }
+        public string Question { get; set; } = string.Empty;
+    }
+
+    /// <summary>Request lupa password langkah 1: cari user by NIM</summary>
+    public class ForgotPasswordRequest
+    {
+        public string Nim { get; set; } = string.Empty;
+    }
+
+    /// <summary>Request lupa password langkah 2: verifikasi jawaban + setel password baru sekaligus</summary>
+    public class VerifyAndResetRequest
+    {
+        public string Nim { get; set; } = string.Empty;
+        public int A1Id { get; set; }
+        public string A1 { get; set; } = string.Empty;
+        public int A2Id { get; set; }
+        public string A2 { get; set; } = string.Empty;
+        public int A3Id { get; set; }
+        public string A3 { get; set; } = string.Empty;
+        public string NewPassword { get; set; } = string.Empty;
+        public string ConfirmPassword { get; set; } = string.Empty;
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // FAILURE CODE (tidak berubah)
+    // ════════════════════════════════════════════════════════════════
+
     public class FailureCodeDetailResponse
     {
         public int Id { get; set; }
         public string Code { get; set; } = string.Empty;
         public string? UserCode { get; set; }
-        public string? Trouble { get; set; } // Pastikan di DB namanya 'description' atau 'trouble'
+        public string? Trouble { get; set; }
         public string? ProblemAppears { get; set; }
         public string? ActionOfController { get; set; }
         public string? ComponentInCharge { get; set; }
         public string? Category { get; set; }
         public string? ReferenceFile { get; set; }
         public string? ReferencePage { get; set; }
-        
-        // Relasi untuk Troubleshooting
         public List<FailurePossibleCause>? PossibleCauses { get; set; }
         public List<FailureDiagnosticTool>? Tools { get; set; }
     }
@@ -56,7 +112,6 @@ namespace astratech_apps_backend.DTOs
         public string? RemedyDetail { get; set; }
     }
 
-    // 4. DTO untuk menyimpan hasil diagnosa ke database
     public class FailureSaveResultRequest
     {
         public string SessionId { get; set; } = string.Empty;

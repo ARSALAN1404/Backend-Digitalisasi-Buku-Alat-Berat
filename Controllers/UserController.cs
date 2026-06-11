@@ -12,7 +12,6 @@ namespace astratech_apps_backend.Controllers
 
         public UserController(IConfiguration configuration)
         {
-            // Menghilangkan warning CS8601 & CS8618
             _connectionString = configuration.GetConnectionString("LocalEquipmentDb") ?? "";
         }
 
@@ -23,24 +22,28 @@ namespace astratech_apps_backend.Controllers
             {
                 using (SqlConnection conn = new SqlConnection(_connectionString))
                 {
-                    SqlCommand cmd = new SqlCommand("sp_UserLogin", conn);
+                    // Gunakan SP baru yang return email & no_telpon
+                    SqlCommand cmd = new SqlCommand("sp_GetUserProfile", conn);
                     cmd.CommandType = CommandType.StoredProcedure;
                     cmd.Parameters.AddWithValue("@nim", nim);
-                    
+
                     conn.Open();
                     using (SqlDataReader reader = cmd.ExecuteReader())
                     {
                         if (reader.Read())
                         {
-                            return Ok(new {
+                            return Ok(new
+                            {
                                 id = reader["id"],
                                 nim = reader["nim"]?.ToString()?.Trim() ?? "",
                                 nama = reader["nama"]?.ToString()?.Trim() ?? "",
+                                email = reader["email"]?.ToString()?.Trim() ?? "",
+                                no_telpon = reader["no_telpon"]?.ToString()?.Trim() ?? "",
                                 role = reader["role"]?.ToString()?.Trim() ?? ""
                             });
                         }
                     }
-                    return NotFound(new { message = "User tidak ditemukan" });
+                    return NotFound(new { message = "User tidak ditemukan." });
                 }
             }
             catch (Exception ex)
