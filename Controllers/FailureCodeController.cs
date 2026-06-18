@@ -15,7 +15,6 @@ namespace astratech_apps_backend.Controllers
             _connectionString = configuration.GetConnectionString("LocalEquipmentDb") ?? "";
         }
 
-        // Fungsi pembantu untuk cek apakah kolom ada di Reader
         private bool HasColumn(SqlDataReader reader, string columnName)
         {
             for (int i = 0; i < reader.FieldCount; i++)
@@ -26,6 +25,113 @@ namespace astratech_apps_backend.Controllers
             return false;
         }
 
+        [HttpGet("search")]
+        public IActionResult Search([FromQuery] string mode, [FromQuery] string keyword)
+        {
+            if (string.IsNullOrEmpty(mode) || string.IsNullOrEmpty(keyword))
+                return BadRequest(new { message = "Mode dan Keyword tidak boleh kosong" });
+
+            try
+            {
+                // Gunakan object? (nullable) agar bisa menerima null
+                List<object?> results = new List<object?>();
+
+                using (SqlConnection conn = new SqlConnection(_connectionString))
+                {
+                    conn.Open();
+                    SqlCommand cmd = new SqlCommand("sp_CentralDiagnosticSearch", conn);
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.AddWithValue("@mode", mode.Trim().ToUpper());
+                    cmd.Parameters.AddWithValue("@keyword", keyword.Trim());
+
+                    using (SqlDataReader reader = cmd.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            // Dictionary value diubah ke object?
+                            var item = new Dictionary<string, object?>();
+                            for (int i = 0; i < reader.FieldCount; i++)
+                            {
+                                item.Add(reader.GetName(i), reader.GetValue(i) == DBNull.Value ? null : reader.GetValue(i));
+                            }
+                            results.Add(item);
+                        }
+                    }
+                }
+                return Ok(results);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpGet("detail")]
+        public IActionResult GetDetail([FromQuery] string mode, [FromQuery] int id)
+        {
+            try
+            {
+                string baseUrl = $"{Request.Scheme}://{Request.Host}{Request.PathBase}/images/troubleshooting/";
+                // Tambahkan tanda tanya (?) pada dynamic agar boleh null
+                dynamic? header = null;
+                List<object?> causes = new List<object?>();
+
+                using (SqlConnection conn = new SqlConnection(_connectionString))
+                {
+                    conn.Open();
+                    SqlCommand cmd = new SqlCommand("sp_GetDiagnosticDetailById", conn);
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.AddWithValue("@mode", mode.Trim().ToUpper());
+                    cmd.Parameters.AddWithValue("@id", id);
+
+                    using (SqlDataReader reader = cmd.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            var headerDict = new Dictionary<string, object?>();
+                            for (int i = 0; i < reader.FieldCount; i++)
+                            {
+                                headerDict.Add(reader.GetName(i), reader.GetValue(i) == DBNull.Value ? null : reader.GetValue(i));
+                            }
+                            header = headerDict;
+                        }
+
+                        if (reader.NextResult()) 
+                        {
+                            while (reader.Read())
+                            {
+                                causes.Add(new {
+                                    id = reader["id"],
+                                    cause_number = reader["cause_number"],
+                                    cause_description = reader["cause_description"]?.ToString() ?? "",
+                                    check_method = reader["check_method"]?.ToString() ?? "",
+                                    standard_condition = reader["standard_condition"]?.ToString() ?? "",
+                                    priority = reader["priority"],
+                                    special_method = reader["special_method"]?.ToString()?.Trim().ToLower() ?? "tidak",
+                                    
+                                    image_url = (HasColumn(reader, "image_filename") && reader["image_filename"] != DBNull.Value) ? 
+                                                baseUrl + reader["image_filename"].ToString() : null,
+                                    standard_image_url = (HasColumn(reader, "standard_image_filename") && reader["standard_image_filename"] != DBNull.Value) ? 
+                                                         baseUrl + reader["standard_image_filename"].ToString() : null,
+
+                                    remedy = HasColumn(reader, "remedy") ? reader["remedy"]?.ToString() : null,
+                                    source_text = HasColumn(reader, "source_text") ? reader["source_text"]?.ToString() : null
+                                });
+                            }
+                        }
+                    }
+                }
+
+                if (header == null) return NotFound(new { message = "Data tidak ditemukan." });
+
+                return Ok(new { header, causes });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
         [HttpGet("{kode}")]
         public IActionResult GetFailureDetail(string kode)
         {
@@ -34,26 +140,25 @@ namespace astratech_apps_backend.Controllers
 
             try
             {
-                // Membuat Base URL untuk akses gambar di folder wwwroot
                 string baseUrl = $"{Request.Scheme}://{Request.Host}{Request.PathBase}/images/troubleshooting/";
 
                 using (SqlConnection conn = new SqlConnection(_connectionString))
                 {
                     conn.Open();
 
-                    // --- TAHAP 1: AMBIL DATA UTAMA ---
                     SqlCommand cmd1 = new SqlCommand("sp_GetFailureCodeByCode", conn);
                     cmd1.CommandType = CommandType.StoredProcedure;
                     cmd1.Parameters.AddWithValue("@code", kode.Trim().ToUpper());
 
-                    object finalResult = null;
+                    // Inisialisasi sebagai nullable object
+                    object? finalResult = null;
 
                     using (SqlDataReader reader1 = cmd1.ExecuteReader())
                     {
                         if (reader1.Read())
                         {
                             finalResult = new {
-                                id = reader1["id"]?.ToString() ?? "",
+                                id = reader1["id"],
                                 code = reader1["code"]?.ToString()?.Trim() ?? "",
                                 user_code = reader1["user_code"]?.ToString()?.Trim() ?? "",
                                 description = reader1["description"]?.ToString() ?? "",
@@ -63,17 +168,12 @@ namespace astratech_apps_backend.Controllers
                                 category = reader1["category"]?.ToString() ?? "",
                                 contents_of_trouble = reader1["contents_of_trouble"]?.ToString() ?? "",
                                 related_information = reader1["related_information"]?.ToString() ?? "",
-                                causes = new List<object>() // Tempat nampung causes nanti
                             };
                         }
-                        else
-                        {
-                            return NotFound(new { message = "Kode tidak ditemukan." });
-                        }
+                        else return NotFound(new { message = "Kode tidak ditemukan." });
                     }
 
-                    // --- TAHAP 2: AMBIL DATA PENYEBAB (POSSIBLE CAUSES) ---
-                    List<object> causesList = new List<object>();
+                    List<object?> causesList = new List<object?>();
                     SqlCommand cmd2 = new SqlCommand("sp_GetPossibleCauseByCode", conn);
                     cmd2.CommandType = CommandType.StoredProcedure;
                     cmd2.Parameters.AddWithValue("@code", kode.Trim().ToUpper());
@@ -86,35 +186,22 @@ namespace astratech_apps_backend.Controllers
                                 cause_description = reader2["cause_description"]?.ToString() ?? "",
                                 check_method = reader2["check_method"]?.ToString() ?? "",
                                 standard_condition = reader2["standard_condition"]?.ToString() ?? "",
-                                
-                                // Cek dulu kolom standard_unit ada atau enggak biar gak crash
-                                standard_unit = HasColumn(reader2, "standard_unit") ? (reader2["standard_unit"]?.ToString() ?? "") : "",
-                                
                                 special_method = reader2["special_method"]?.ToString()?.Trim().ToLower() ?? "tidak",
-
-                                // TAMBAHAN: Ambil data gambar dari SP dan buat URL lengkapnya
                                 image_url = (HasColumn(reader2, "image_filename") && reader2["image_filename"] != DBNull.Value) ? 
                                             baseUrl + reader2["image_filename"].ToString() : null,
-
                                 standard_image_url = (HasColumn(reader2, "standard_image_filename") && reader2["standard_image_filename"] != DBNull.Value) ? 
                                                      baseUrl + reader2["standard_image_filename"].ToString() : null
                             });
                         }
                     }
 
-                    // Masukkan list causes ke objek hasil akhir
-                    var response = (dynamic)finalResult;
-                    
+                    // Gunakan operator ! (null-forgiving) karena kita sudah cek di atas bahwa ia tidak null
+                    var response = (dynamic)finalResult!;
                     return Ok(new {
-                        id = response.id,
-                        code = response.code,
-                        user_code = response.user_code,
-                        description = response.description,
-                        problem_appears = response.problem_appears,
-                        action_of_controller = response.action_of_controller,
-                        component_in_charge = response.component_in_charge,
-                        category = response.category,
-                        contents_of_trouble = response.contents_of_trouble,
+                        id = response.id, code = response.code, user_code = response.user_code,
+                        description = response.description, problem_appears = response.problem_appears,
+                        action_of_controller = response.action_of_controller, component_in_charge = response.component_in_charge,
+                        category = response.category, contents_of_trouble = response.contents_of_trouble,
                         related_information = response.related_information,
                         causes = causesList 
                     });
