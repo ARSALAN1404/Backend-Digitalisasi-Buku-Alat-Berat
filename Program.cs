@@ -1,7 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using astratech_apps_backend.Repositories;
+using astratech_apps_backend.Repositories.Interfaces;
+using astratech_apps_backend.Repositories.Implementations;
 using astratech_apps_backend.Services;
 using astratech_apps_backend.Helpers;
 using Microsoft.OpenApi.Models;
@@ -73,8 +74,9 @@ builder.Services.AddAuthorization();
 builder.Services.AddScoped<IFailureCodeRepository, FailureCodeRepository>();
 builder.Services.AddScoped<IFailureDiagnosisService, FailureDiagnosisService>();
 builder.Services.AddSingleton<JwtHelper>();
+builder.Services.AddScoped<IHistoryRepository, HistoryRepository>();
 
-// CORS
+// CORS ===
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
