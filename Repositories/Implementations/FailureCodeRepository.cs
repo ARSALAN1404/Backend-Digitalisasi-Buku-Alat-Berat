@@ -1,10 +1,8 @@
 using astratech_apps_backend.Models;
+using astratech_apps_backend.Repositories.Interfaces;
 using Microsoft.Data.SqlClient;
-using Microsoft.Extensions.Configuration;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 
-namespace astratech_apps_backend.Repositories
+namespace astratech_apps_backend.Repositories.Implementations
 {
     public class FailureCodeRepository : IFailureCodeRepository
     {
