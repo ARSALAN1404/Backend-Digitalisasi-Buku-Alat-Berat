@@ -4,7 +4,7 @@ using System.Text;
 using Microsoft.OpenApi.Models;
 
 // PERBAIKAN: Berdasarkan kode yang kamu kirim, ini adalah using yang benar:
-using astratech_apps_backend.Repositories;             // Untuk IFailureCodeRepository & FailureCodeRepository (no 3 & 4)
+using astratech_apps_backend.Repositories.Implementations;             // Untuk IFailureCodeRepository & FailureCodeRepository (no 3 & 4)
 using astratech_apps_backend.Services;                 // Untuk IFailureDiagnosisService & FailureDiagnosisService (no 1 & 2)
 using astratech_apps_backend.Repositories.Interfaces;  // Untuk IHistoryRepository (no 5)
 using astratech_apps_backend.Helpers;
