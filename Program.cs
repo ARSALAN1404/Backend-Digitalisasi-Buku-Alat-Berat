@@ -1,27 +1,27 @@
 ﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using astratech_apps_backend.Repositories.Interfaces;
-using astratech_apps_backend.Repositories.Implementations;
-using astratech_apps_backend.Services;
-using astratech_apps_backend.Helpers;
 using Microsoft.OpenApi.Models;
+
+// PERBAIKAN: Berdasarkan kode yang kamu kirim, ini adalah using yang benar:
+using astratech_apps_backend.Repositories;             // Untuk IFailureCodeRepository & FailureCodeRepository (no 3 & 4)
+using astratech_apps_backend.Services;                 // Untuk IFailureDiagnosisService & FailureDiagnosisService (no 1 & 2)
+using astratech_apps_backend.Repositories.Interfaces;  // Untuk IHistoryRepository (no 5)
+using astratech_apps_backend.Helpers;
+
+// Jika nanti kamu punya HistoryRepository (Implementasi), tambahkan using tempat filenya berada
+// Contoh: using astratech_apps_backend.Repositories.Implementations;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to container
+// 1. Add services to container
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
-// Swagger with JWT
+// 2. Swagger with JWT
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new OpenApiInfo
-    {
-        Title = "Komatsu Diagnostic API",
-        Version = "v1"
-    });
-
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Komatsu Diagnostic API", Version = "v1" });
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
@@ -29,26 +29,21 @@ builder.Services.AddSwaggerGen(c =>
         Scheme = "Bearer",
         BearerFormat = "JWT",
         In = ParameterLocation.Header,
-        Description = "Masukkan token JWT"
+        Description = "Masukkan token JWT anda."
     });
-
     c.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
             new OpenApiSecurityScheme
             {
-                Reference = new OpenApiReference
-                {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = "Bearer"
-                }
+                Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
             },
             new string[] {}
         }
     });
 });
 
-// JWT Configuration - BACA DARI appsettings.json
+// 3. JWT Configuration
 var jwtKey = builder.Configuration["Jwt:Key"] ?? "komatsu_diagnostic_secret_key_2024";
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "komatsu-backend";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "komatsu-mobile-app";
@@ -70,13 +65,16 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 
-// Register Dependencies
+// 4. --- REGISTER DEPENDENCIES (SESUAI KODE NO 1-5) ---
 builder.Services.AddScoped<IFailureCodeRepository, FailureCodeRepository>();
 builder.Services.AddScoped<IFailureDiagnosisService, FailureDiagnosisService>();
 builder.Services.AddSingleton<JwtHelper>();
-builder.Services.AddScoped<IHistoryRepository, HistoryRepository>();
 
-// CORS ===
+// Catatan: Pastikan kamu sudah membuat class "HistoryRepository" 
+// yang mengimplementasikan "IHistoryRepository"
+// builder.Services.AddScoped<IHistoryRepository, HistoryRepository>();
+
+// 5. CORS Setup
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
@@ -87,24 +85,17 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// --- PENTING: PENGATURAN MIDDLEWARE ---
-
+// 6. Configure Pipeline
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
-
-// 1. TAMBAHKAN INI AGAR GAMBAR BISA DIAKSES VIA URL
 app.UseStaticFiles(); 
-
+app.UseHttpsRedirection();
 app.UseCors("AllowAll");
-
 app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapControllers();
-
 app.Run();
