@@ -3,14 +3,11 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.OpenApi.Models;
 
-// PERBAIKAN: Berdasarkan kode yang kamu kirim, ini adalah using yang benar:
-using astratech_apps_backend.Repositories.Implementations;             // Untuk IFailureCodeRepository & FailureCodeRepository (no 3 & 4)
-using astratech_apps_backend.Services;                 // Untuk IFailureDiagnosisService & FailureDiagnosisService (no 1 & 2)
-using astratech_apps_backend.Repositories.Interfaces;  // Untuk IHistoryRepository (no 5)
+using astratech_apps_backend.Repositories.Implementations;            
+using astratech_apps_backend.Services;                 
+using astratech_apps_backend.Repositories.Interfaces;  
 using astratech_apps_backend.Helpers;
 
-// Jika nanti kamu punya HistoryRepository (Implementasi), tambahkan using tempat filenya berada
-// Contoh: using astratech_apps_backend.Repositories.Implementations;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -64,17 +61,11 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 builder.Services.AddAuthorization();
-
-// 4. --- REGISTER DEPENDENCIES (SESUAI KODE NO 1-5) ---
 builder.Services.AddScoped<IFailureCodeRepository, FailureCodeRepository>();
 builder.Services.AddScoped<IFailureDiagnosisService, FailureDiagnosisService>();
 builder.Services.AddSingleton<JwtHelper>();
+builder.Services.AddScoped<IHistoryRepository, HistoryRepository>();
 
-// Catatan: Pastikan kamu sudah membuat class "HistoryRepository" 
-// yang mengimplementasikan "IHistoryRepository"
-// builder.Services.AddScoped<IHistoryRepository, HistoryRepository>();
-
-// 5. CORS Setup
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
