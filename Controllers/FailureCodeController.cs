@@ -114,8 +114,8 @@ namespace astratech_apps_backend.Controllers
                                     standard_image_url = (HasColumn(reader, "standard_image_filename") && reader["standard_image_filename"] != DBNull.Value) ? 
                                                          baseUrl + reader["standard_image_filename"].ToString() : null,
 
-                                    remedy = HasColumn(reader, "remedy") ? reader["remedy"]?.ToString() : null,
-                                    source_text = HasColumn(reader, "source_text") ? reader["source_text"]?.ToString() : null
+                                    remedy = HasColumn(reader, "remedy") ? reader["remedy"]?.ToString() : null
+    
                                 });
                             }
                         }
